@@ -1,0 +1,20 @@
+{
+  "basic": {
+    "level": "INFO",
+    "format": "[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s"
+  },
+  "console": {
+    "level": "DEBUG",
+    "format": "[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s"
+  },
+  "file": {
+    // "type":"Ordinary" or "Rotating"
+    "type": "Rotating",
+    "filePath": "./logs/log",
+    //当"type":"Ordinary" 时，以下两个配置不需要写
+    "maxBytes": 5,
+    "backupCount": 3
+  },
+  "mongodb": {
+  }
+}
