@@ -1,19 +1,20 @@
 {
-  "basic": {
-    "level": "INFO",
-    "format": "[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s"
+  "Basic": {
+    "LEVEL": "INFO",
+    "FORMAT": "[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s"
   },
-  "console": {
-    "level": "DEBUG",
-    "format": "[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s"
+  "Console": {
+    "LEVEL": "DEBUG",
+    "FORMAT": "[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s"
   },
-  "file": {
-    // "type":"Ordinary" or "Rotating"
-    "type": "Rotating",
-    "filePath": "./logs/log",
-    //当"type":"Ordinary" 时，以下两个配置不需要写
-    "maxBytes": 5,
-    "backupCount": 3
+  "File": {
+    // 当这里没有 "LEVEL" 或 "FORMAT" 时将使用 Basic中的配置
+    // "TYPE":"Ordinary" or "Rotating"
+    "TYPE": "Rotating",
+    "FILE_PATH": "./logs/log",
+    //当"TYPE":"Ordinary" 时，以下两个配置不需要写
+    "MAX_BYTES": 5,
+    "BACKUP_COUNT": 3
   },
   "mongodb": {
   }
