@@ -20,63 +20,98 @@ class CPXLogger:
 
     @classmethod
     def __create_handler(cls, HandlerClass, init_params, log_level, format_str):
+        """
+        Create a log handler and add it into cls.__handlers
+        :param HandlerClass: the log handler class
+        :param init_params: the init params for create this handler object
+        :param log_level: the log level for this handler
+        :param format_str: the log output format for this handler
+        :return: None
+        """
         new_handler = HandlerClass(**init_params)
         new_handler.setLevel(log_level)
         new_formatter = logging.Formatter(format_str)
         new_handler.setFormatter(new_formatter)
         cls.__handlers.append(new_handler)
 
-    def __add_handlers(self):
-        pass
-
+    @classmethod
     def __create_logger(self, name):
+        """
+        Create the logger and add the handlers
+        :param name: logger name
+        :return: None
+        """
         logging.basicConfig(level=self.__default_level, format=self.__default_format)
         self.__logger = logging.getLogger(name)
+        for handler in self.__handlers:
+            self.__logger.addHandler(handler)
 
     @classmethod
     def __load_config(cls, config: dict):
-        print("RAW CONFIG:")
-        pprint(config)
+        """
+        Get config information from the config dict.
 
-        Basic = config.get("Basic", None)
-        if Basic:
-            cls.__default_level = getattr(logging, Basic.get("LEVEL", "DEBUG"))
-            cls.__default_format = Basic.get("FORMAT", cls.__default_format)
+        The config for console log output is from Basic or Console key-value. if not all of them,
+        it will use the default setting. if all of them, the Basic config information will be
+        covered with the Console config information.
 
+        The config for file log output is from File key-value. if the TYPE is 'Ordinary',
+        the Handler Class will be logging.FileHandler, if is 'Rotating', the Handler Class
+        will be logging.handlers.RotatingFileHandler
+
+        TODO mongodb log output introduce
+
+        :param config: config information dict
+        :return: None
+        """
+        # deal the config for console log output
+        basic_cnf = config.get("Basic", None)
+        if basic_cnf:
+            cls.__default_level = getattr(logging, basic_cnf.get("LEVEL", "DEBUG"))
+            cls.__default_format = basic_cnf.get("FORMAT", cls.__default_format)
             del config["Basic"]
 
-        Console = config.get("Console", None)
-        if Console:
-            cls.__default_level = getattr(logging, Console.get("LEVEL", "DEBUG"))
-            cls.__default_format = Console.get("FORMAT", cls.__default_format)
+        console_cnf = config.get("Console", None)
+        if console_cnf:
+            cls.__default_level = getattr(logging, console_cnf.get("LEVEL", "DEBUG"))
+            cls.__default_format = console_cnf.get("FORMAT", cls.__default_format)
             del config["Console"]
 
-        File = config.get("File", None)
-        if File:
+        # deal the config for file log output
+        file_log_cnf = config.get("File", None)
+        if file_log_cnf:
             # get FileHandlerClass and the config information
-            file_log_type = File.get("TYPE", "Ordinary")
+            file_log_type = file_log_cnf.get("TYPE", "Ordinary")
             handler_class = logging.FileHandler
             handler_init_params = dict(
-                filename=File["FILE_PATH"],
-                encoding=File.get("ENCODING", None),
-                delay=File.get("DELAY", False)
+                filename=file_log_cnf["FILE_PATH"],
+                encoding=file_log_cnf.get("ENCODING", None),
+                delay=file_log_cnf.get("DELAY", False)
             )
             if file_log_type == "Rotating":
                 handler_class = handlers.RotatingFileHandler
-                handler_init_params["maxBytes"] = File["MAX_BYTES"]
-                handler_init_params["backupCount"] = int(File["BACKUP_COUNT"])
+                handler_init_params["maxBytes"] = file_log_cnf["MAX_BYTES"]
+                handler_init_params["backupCount"] = int(file_log_cnf["BACKUP_COUNT"])
 
-            log_level = getattr(logging, File.get("LEVEL", None)) if File.get("LEVEL", None) else cls.__default_level
-            format_str = File.get("FORMAT", cls.__default_format)
-
+            log_level = getattr(logging, file_log_cnf.get("LEVEL", None)) if file_log_cnf.get("LEVEL",
+                                                                                              None) else cls.__default_level
+            format_str = file_log_cnf.get("FORMAT", cls.__default_format)
             # create handler
             cls.__create_handler(HandlerClass=handler_class,
                                  init_params=handler_init_params,
                                  log_level=log_level,
                                  format_str=format_str)
 
+        # TODO deal the config for mongodb log output
+        pass
+
     @classmethod
     def config_from_dict(cls, config_dict: dict) -> None:
+        """
+        Load the config from a dict
+        :param config_dict: the config dcit
+        :return: None
+        """
         assert not cls.__config_tag, _ConfigAlreadyLoadErrorInfo
         cls.__load_config(config_dict)
         cls.__config_tag = True
@@ -127,10 +162,9 @@ class CPXLogger:
     @staticmethod
     def create_logger(name="CPXLogger"):
         """
-
         :param name:
         :return:
         """
         if not CPXLogger.__logger:
-            CPXLogger().__create_logger(name)
+            CPXLogger.__create_logger(name)
         return CPXLogger.__logger
