@@ -1,3 +1,10 @@
+# contants.py 
+"""
+config2handlers_params_map:
+    help the module translate Config Key to Handler init Params
+
+
+"""
 
 config2handlers_params_map = {
     "LEVEL": "level",

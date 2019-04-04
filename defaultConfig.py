@@ -1,3 +1,5 @@
+# defaultConfig.py 
+# saved an class config demo and a dict config deme
 class ConfigClassDemo:
     """
     Using a class object to save config information.

@@ -1,10 +1,11 @@
 import logging
 import json
 import contants
+from pprint import pprint
 
-ConfigAlreadyLoadErrorInfo = "Log配置已经加载过了, 请勿重复加载配置。\n" \
+__ConfigAlreadyLoadErrorInfo = "Log配置已经加载过了, 请勿重复加载配置。\n" \
                              "如果你确定要重新加载配置，请先调用 CPXLogger.clean_config() 来清空原来的配置信息\n"
-
+__SupportHanlers = ["Console", "File", "RotatingFile","Mongodb"]
 
 class CPXLogger:
     __default_level = logging.DEBUG
@@ -14,6 +15,9 @@ class CPXLogger:
     __config_tag = False
     __handler_flag = list()
     __config_dict = dict()
+
+    def __create_handlers(self, name, init_params):
+        pass
 
     def __add_handlers(self):
         pass
@@ -26,20 +30,21 @@ class CPXLogger:
     def __load_config(cls):
         cls.__handler_flag.extend(cls.__config_dict.keys())
 
+
     @classmethod
-    def config_from_dict(cls, config_dict: dict) -> None:
-        assert cls.__config_tag, ConfigAlreadyLoadErrorInfo
+    def config_from_dict(cls, config_dict: di ct) -> None:
+        assert not cls.__config_tag, __ConfigAlreadyLoadErrorInfo
         cls.__config_dict = config_dict
         cls.__config_tag = True
 
     @classmethod
-    def config_from_class(cls, config_class: object) -> None:
+    def config_from_class( cls, config_class: object) -> None:
         """
         Load the log config from a class object
         :param config_class: the class object
         :return: None
         """
-        assert cls.__config_tag, ConfigAlreadyLoadErrorInfo
+        assert not cls.__config_tag, __ConfigAlreadyLoadErrorInfo
 
         # Translate the configClass to a configDict
         subclass_names = (name for name in dir(config_class) if name.isalpha() and name[0].isupper())
@@ -48,7 +53,7 @@ class CPXLogger:
             config_detail = {attr: getattr(sub_class, attr)
                              for attr in dir(sub_class) if attr.isupper()}
             cls.__config_dict.update({name: config_detail})
-
+        pprint(cls.__config_dict)
         cls.__config_tag = True
 
     @classmethod
@@ -59,7 +64,7 @@ class CPXLogger:
         :param encoding: the coding type of the file
         :return: None
         """
-        assert cls.__config_tag, ConfigAlreadyLoadErrorInfo
+        assert not cls.__config_tag, __ConfigAlreadyLoadErrorInfo
 
         with open(config_file, "r", encoding=encoding) as f:
             cls.__config_dict = json.loads(f.read(), encoding=encoding)
