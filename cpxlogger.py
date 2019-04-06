@@ -6,6 +6,7 @@ from pprint import pprint
 
 _ConfigAlreadyLoadErrorInfo = "Log配置已经加载过了, 请勿重复加载配置。\n" \
                               "如果你确定要重新加载配置，请先调用 CPXLogger.clean_config() 来清空原来的配置信息\n"
+
 _SupportHandlers = ["Console", "File", "RotatingFile", "Mongodb"]
 
 
@@ -19,32 +20,32 @@ class CPXLogger:
     __config_dict = dict()
 
     @classmethod
-    def __create_handler(cls, HandlerClass, init_params, log_level, format_str):
+    def __create_handler(cls, handler_class, init_params, log_level, format_str):
         """
         Create a log handler and add it into cls.__handlers
-        :param HandlerClass: the log handler class
+        :param handler_class: the log handler class
         :param init_params: the init params for create this handler object
         :param log_level: the log level for this handler
         :param format_str: the log output format for this handler
         :return: None
         """
-        new_handler = HandlerClass(**init_params)
+        new_handler = handler_class(**init_params)
         new_handler.setLevel(log_level)
         new_formatter = logging.Formatter(format_str)
         new_handler.setFormatter(new_formatter)
         cls.__handlers.append(new_handler)
 
     @classmethod
-    def __create_logger(self, name):
+    def __create_logger(cls, name):
         """
         Create the logger and add the handlers
         :param name: logger name
         :return: None
         """
-        logging.basicConfig(level=self.__default_level, format=self.__default_format)
-        self.__logger = logging.getLogger(name)
-        for handler in self.__handlers:
-            self.__logger.addHandler(handler)
+        logging.basicConfig(level=cls.__default_level, format=cls.__default_format)
+        cls.__logger = logging.getLogger(name)
+        for handler in cls.__handlers:
+            cls.__logger.addHandler(handler)
 
     @classmethod
     def __load_config(cls, config: dict):
@@ -97,7 +98,7 @@ class CPXLogger:
                                                                                               None) else cls.__default_level
             format_str = file_log_cnf.get("FORMAT", cls.__default_format)
             # create handler
-            cls.__create_handler(HandlerClass=handler_class,
+            cls.__create_handler(handler_class=handler_class,
                                  init_params=handler_init_params,
                                  log_level=log_level,
                                  format_str=format_str)
