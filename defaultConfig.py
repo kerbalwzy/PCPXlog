@@ -21,17 +21,17 @@ class ConfigClassDemo:
         the global log 'LEVEL' and 'FORMAT' setting, if there an other Handler config class not set
         about this two option, it will use from here.
         """
-        LEVEL = "INFO"
+        LEVEL = "DEBUG"
         FORMAT = "[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s"
 
     class Console:
-        LEVEL = "INFO"
+        LEVEL = "DEBUG"
         FORMAT = "[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s"
 
     class File(Basic):
         TYPE = "Rotating"
         FILE_PATH = "./logs/log"
-        MAX_BYTES = 5
+        MAX_BYTES = 1024
         BACKUP_COUNT = 3
 
     class Mongodb:
@@ -41,16 +41,17 @@ class ConfigClassDemo:
 ConfigDictDemo = {
     'Basic': {
         'FORMAT': '[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s',
-        'LEVEL': 'INFO'
+        'LEVEL': 'DEBUG'
     },
     'Console': {
         'FORMAT': '[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s',
-        'LEVEL': 'INFO'
+        'LEVEL': 'DEBUG'
     },
+
     'File': {
         'BACKUP_COUNT': 3,
         'FILE_PATH': './logs/log',
-        'MAX_BYTES': 5,
+        'MAX_BYTES': 1024,
         'TYPE': 'Rotating'
     },
     'Mongodb': {}

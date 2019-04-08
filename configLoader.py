@@ -4,6 +4,9 @@ from cpxlogger import CPXLogger
 
 
 class ConfigLoader:
+    """
+    Be in charge of processing the config for log handlers with out console.
+    """
     __cpx_logger = CPXLogger
 
     @classmethod

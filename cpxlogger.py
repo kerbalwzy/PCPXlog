@@ -15,7 +15,7 @@ Future:                          |
 """
 import logging
 import json
-from configLoader import ConfigLoader
+
 
 _ConfigAlreadyLoadErrorInfo = """Log configuration has been loaded, do not load configuration again.
 If you are sure you want to reload the configuration, call 'CPXLogger.clean_config()' first,
@@ -68,11 +68,13 @@ class CPXLogger:
         it will use the default setting. if all of them, the Basic config information will be
         covered with the Console config information.
 
-
+        The config for other handlers will be processed by ConfigLoader
 
         :param config: config information dict
         :return: None
         """
+        from configLoader import ConfigLoader
+
         basic_cnf = config.get("Basic", None)
         if basic_cnf:
             cls.default_level = getattr(logging, basic_cnf.get("LEVEL", "DEBUG"))
@@ -85,7 +87,7 @@ class CPXLogger:
             cls.default_format = console_cnf.get("FORMAT", cls.default_format)
             del config["Console"]
 
-        # deal the config for file log output
+        # process the config for file log output
         file_log_cnf = config.get("File", None)
         if file_log_cnf:
             # get file log handler create params
@@ -155,7 +157,7 @@ class CPXLogger:
     def create_logger(name="CPXLogger"):
         """
         :param name:
-        :return:
+        :return: logger
         """
         if not CPXLogger.__logger:
             CPXLogger.__create_logger(name)
