@@ -1,6 +1,7 @@
 import logging
 from pymongo import MongoClient
 from platform import python_version
+from datetime import datetime
 
 PYTHON_VERSION = float(python_version()[0:3])
 
@@ -40,7 +41,8 @@ class RotatingMongodbHandler(logging.Handler):
         :param coll_count: the count of the log collection in the database
         """
         logging.Handler.__init__(self)
-
+        assert 0 < coll_count <= MONGODB_COLL_MAX_COUNT, "The value out of range for Param coll_count"
+        assert 0 < coll_size <= MONGODB_COLL_MAX_SIZE, "The value out of range for Param coll_size"
         # create mongodb client
         if user or password:
             uri = 'mongodb://' + user + ':' + password + '@' + host + ':' + str(port) + '/'
@@ -49,9 +51,40 @@ class RotatingMongodbHandler(logging.Handler):
         self.client = MongoClient(uri)
         self.db = self.client[db]
         self.base_coll_name = coll_name
-        self.coll_size = coll_size
-        self.coll_count = coll_count
-        self.__RotatingMongodbLogRecordName = "RotatingMongodbLogRecord"
+        self.coll_size = int(coll_size)
+        self.coll_count = int(coll_count)
+        self.__RecordColl = self.db["LogRecord"]
+        self.__logs_record_id = None
+
+    def db_record(self):
+        """
+        Check the status about the log information saving, and record the log collection have
+        saved how many data.
+        The logs record data structure example:
+        {
+            _id: ObjectId("xxxxxxxxxxxx"),
+            tag: "CPXLog-mongodb",
+            coll_size: 1024*1024*N(N <= 15),
+            coll_count: C ( 1 <= c <= 11000),
+            coll_details: [
+                {
+                    name: logs_<create_time_stamp>,
+                    current_size: 1024 * 1024 * N,
+                    is_fall: False,
+                },
+                {
+                    name: logs_<create_time_stamp>,
+                    current_size: 1024 * 1024 * N,
+                    is_fall: False,
+                },
+                ......
+            ]
+
+         }
+        """
+        if not self.__logs_record_id:
+            ret = self.__RecordColl.insert_one()
+            self.__logs_record_id = ret.inserted_id
 
     def emit(self, record):
         print("log for mongodb========================")
@@ -63,3 +96,8 @@ class RotatingMongodbHandler(logging.Handler):
         Close the connect with mongodb
         """
         self.client.close()
+
+
+if __name__ == '__main__':
+    monodb_log = RotatingMongodbHandler(host="104.128.87.146")
+    monodb_log.db_record()
