@@ -1,4 +1,6 @@
 import logging
+
+from bson import ObjectId
 from pymongo import MongoClient
 from platform import python_version
 import time
@@ -43,19 +45,44 @@ class RotatingMongodbHandler(logging.Handler):
         logging.Handler.__init__(self)
         assert 0 < coll_count <= MONGODB_COLL_MAX_COUNT, "The value out of range for Param coll_count"
         assert 0 < coll_size <= MONGODB_COLL_MAX_SIZE, "The value out of range for Param coll_size"
-        # create mongodb client
+        # create mongodb client cursor
         if user or password:
             uri = 'mongodb://' + user + ':' + password + '@' + host + ':' + str(port) + '/'
         else:
             uri = 'mongodb://' + host + ':' + str(port) + '/'
         self.client = MongoClient(uri)
+
+        # create logs database cursor
         self.db = self.client[db]
         self.base_coll_name = coll_name
         self.coll_size = int(coll_size)
         self.coll_count = int(coll_count)
-        self.__RecordColl = self.db["LogRecord"]
+
+        # create LogRecord collection cursor, if no data in this collection then init it.
         self.__logs_record_id = None
         self.__Handler_tag = "CPXLog-mongodb"
+        self.__RecordColl = self.db["LogRecord"]
+
+        current_record = self.__RecordColl.find_one(dict(tag=self.__Handler_tag))
+        if current_record:
+            self.__logs_record_id = current_record["_id"]
+        else:
+            current_record = dict(
+                tag=self.__Handler_tag,
+                coll_size=self.coll_size,
+                coll_count=self.coll_count,
+                history_log_coll=list(),
+                current_log_coll=dict(
+                    name=self.base_coll_name + "_" + str(int(round(time.time()))),
+                    current_size=0,
+                    is_fall=False
+                )
+            )
+            ret = self.__RecordColl.insert_one(current_record)
+            self.__logs_record_id = ret.inserted_id
+
+        # create the current log collection cursor
+        self.current_log_coll = self.db[current_record["current_log_coll"]["name"]]
 
     def db_record(self):
         """
@@ -70,13 +97,13 @@ class RotatingMongodbHandler(logging.Handler):
             coll_details: [
                 {
                     name: <coll_name>_<create_time_stamp>,
-                    current_size: 1024 * 1024 * N,
-                    is_fall: False,
+                    current_size: <coll_size>,
+                    is_fall: True,
                 },
                 {
                     name: <coll_name>_<create_time_stamp>,
-                    current_size: 1024 * 1024 * N,
-                    is_fall: False,
+                    current_size: <coll_size>,
+                    is_fall: True,
                 },
                 ......
             ],
@@ -88,20 +115,20 @@ class RotatingMongodbHandler(logging.Handler):
 
          }
         """
-        if not self.__logs_record_id:
-            logs_record_init_info = dict(
-                tag=self.__Handler_tag,
-                coll_size=self.coll_size,
-                coll_count=self.coll_count,
-                coll_details=list(),
-                newest_log_coll=dict(
-                    name=self.base_coll_name + "_" + str(int(round(time.time()))),
-                    current_size=0,
-                    is_fall=False
-                )
-            )
-            ret = self.__RecordColl.insert_one(logs_record_init_info)
-            self.__logs_record_id = ret.inserted_id
+        # history_record = self.__RecordColl.find_one(dict(_id=self.__logs_record_id))
+        import bson
+        # data_size = bson.BSON.encode(history_record)
+        # print(data_size)
+        # status = self.__RecordColl.stats()
+        # print(status)
+        test_date = dict(_id=ObjectId(), name="laowang")
+        bson_test_data = bson.BSON.encode(test_date)
+        print("raw length:", len(bson_test_data))
+        ret = self.current_log_coll.insert_one(test_date)
+        print(ret.inserted_id)
+        get_test_date = self.current_log_coll.find_one(dict(_id=test_date["_id"]))
+        print("get length:", len(bson.BSON.encode(get_test_date)))
+        pass
 
     def emit(self, record):
         print("log for mongodb========================")
