@@ -1,7 +1,7 @@
 import logging
 from pymongo import MongoClient
 from platform import python_version
-from datetime import datetime
+import time
 
 PYTHON_VERSION = float(python_version()[0:3])
 
@@ -55,6 +55,7 @@ class RotatingMongodbHandler(logging.Handler):
         self.coll_count = int(coll_count)
         self.__RecordColl = self.db["LogRecord"]
         self.__logs_record_id = None
+        self.__Handler_tag = "CPXLog-mongodb"
 
     def db_record(self):
         """
@@ -62,28 +63,44 @@ class RotatingMongodbHandler(logging.Handler):
         saved how many data.
         The logs record data structure example:
         {
-            _id: ObjectId("xxxxxxxxxxxx"),
+            _id: ObjectId(<id_auto_created_by_mongodb>),
             tag: "CPXLog-mongodb",
-            coll_size: 1024*1024*N(N <= 15),
-            coll_count: C ( 1 <= c <= 11000),
+            coll_size: <coll_size>,
+            coll_count: <coll_count>,
             coll_details: [
                 {
-                    name: logs_<create_time_stamp>,
+                    name: <coll_name>_<create_time_stamp>,
                     current_size: 1024 * 1024 * N,
                     is_fall: False,
                 },
                 {
-                    name: logs_<create_time_stamp>,
+                    name: <coll_name>_<create_time_stamp>,
                     current_size: 1024 * 1024 * N,
                     is_fall: False,
                 },
                 ......
-            ]
+            ],
+            newest_log_coll: {
+                name: <coll_name>_<create_time_stamp>,
+                current_size: 1024 * 1024 * N,
+                is_fall: False,
+            }
 
          }
         """
         if not self.__logs_record_id:
-            ret = self.__RecordColl.insert_one()
+            logs_record_init_info = dict(
+                tag=self.__Handler_tag,
+                coll_size=self.coll_size,
+                coll_count=self.coll_count,
+                coll_details=list(),
+                newest_log_coll=dict(
+                    name=self.base_coll_name + "_" + str(int(round(time.time()))),
+                    current_size=0,
+                    is_fall=False
+                )
+            )
+            ret = self.__RecordColl.insert_one(logs_record_init_info)
             self.__logs_record_id = ret.inserted_id
 
     def emit(self, record):
