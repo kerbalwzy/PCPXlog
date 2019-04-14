@@ -1,16 +1,12 @@
 import logging
+import re
 
-from bson import ObjectId
+import bson
 from pymongo import MongoClient
 from platform import python_version
 import time
 
 PYTHON_VERSION = float(python_version()[0:3])
-
-DB_EXIST_ERROR = "You have turn on the database check and the database %s already exist. If you are sure, " \
-                 "please make param reuse=True"
-COLL_EXIST_ERROR = "You have turn on the collection check and the collection %s already exist. If you are sure," \
-                   " please make param reuse=True"
 
 # the max size of single collection is 16MB.
 # So we set the MONGODB_COLL_MAX_SIZE = 15MB to keep safe
@@ -100,12 +96,7 @@ class RotatingMongodbHandler(logging.Handler):
                     current_size: <coll_size>,
                     is_fall: True,
                 },
-                {
-                    name: <coll_name>_<create_time_stamp>,
-                    current_size: <coll_size>,
-                    is_fall: True,
-                },
-                ......
+                ...
             ],
             newest_log_coll: {
                 name: <coll_name>_<create_time_stamp>,
@@ -115,30 +106,37 @@ class RotatingMongodbHandler(logging.Handler):
 
          }
         """
-        # history_record = self.__RecordColl.find_one(dict(_id=self.__logs_record_id))
-        import bson
-        # data_size = bson.BSON.encode(history_record)
-        # print(data_size)
-        # status = self.__RecordColl.stats()
-        # print(status)
-        test_date = dict(_id=ObjectId(), name="laowang")
-        bson_test_data = bson.BSON.encode(test_date)
-        print("raw length:", len(bson_test_data))
-        ret = self.current_log_coll.insert_one(test_date)
-        print(ret.inserted_id)
-        get_test_date = self.current_log_coll.find_one(dict(_id=test_date["_id"]))
-        print("get length:", len(bson.BSON.encode(get_test_date)))
+        pass
+
+    def parse_log(self, record):
+        """
+        Translate the record object into a log information dict
+        :param record: the log record object
+        :return: log_date: the log info dict
+        """
+        raw_fmt = self.formatter._fmt
+        print("raw", raw_fmt)
+        keys = re.findall(r'\W+(\w+)\W+?', raw_fmt)
+        print(keys)
         pass
 
     def emit(self, record):
+        """
+        Get information from record and make it to a dict, then save to mongodb
+        """
+        self.parse_log(record)
         print("log for mongodb========================")
         print(record)
+        attrs = [i for i in dir(record) if not i.startswith("__")]
+        # for i in attrs:
+        #     print(i, ":::::", getattr(record, i))
         print("log for mongodb========================")
 
     def close(self):
         """
         Close the connect with mongodb
         """
+        print("close")
         self.client.close()
 
 
