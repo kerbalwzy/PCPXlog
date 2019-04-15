@@ -1,10 +1,11 @@
 import logging
 import re
+import time
 
 import bson
 from pymongo import MongoClient
 from platform import python_version
-import time
+from collections import OrderedDict
 
 PYTHON_VERSION = float(python_version()[0:3])
 
@@ -108,6 +109,23 @@ class RotatingMongodbHandler(logging.Handler):
         """
         pass
 
+    def __format_record(self, record):
+        """
+        This method add some attribute for the record object.
+        :param record
+        :return: record
+        """
+        record.message = record.getMessage()
+        if self.formatter.usesTime():
+            record.asctime = self.formatter.formatTime(record, self.formatter.datefmt)
+
+        if record.exc_info:
+            # Cache the traceback text to avoid converting it multiple times
+            # (it's constant anyway)
+            if not record.exc_text:
+                record.exc_text = self.formatter.formatException(record.exc_info)
+        return record
+
     def parse_log(self, record):
         """
         Translate the record object into a log information dict
@@ -115,19 +133,27 @@ class RotatingMongodbHandler(logging.Handler):
         :return: log_date: the log info dict
         """
         raw_fmt = self.formatter._fmt
-        print("raw", raw_fmt)
-        keys = re.findall(r'\W+(\w+)\W+?', raw_fmt)
-        print(keys)
-        pass
+        format_keys = re.findall(r'\W+(\w+)\W+?', raw_fmt)
+
+        log_information_dict = OrderedDict()
+        for key in format_keys:
+            log_information_dict[key] = getattr(record, key)
+        log_information_dict['exc_text'] = record['exc_text']
+        log_information_dict['stack_info'] = record['stack_info']
+        return log_information_dict
 
     def emit(self, record):
         """
         Get information from record and make it to a dict, then save to mongodb
         """
-        self.parse_log(record)
+        record = self.__format_record(record)
+        print(self.formatter.usesTime())
+        print(dir(record))
+        # log_data = self.parse_log(record)
+        # print(log_data)
+        # print(record.asctime)
         print("log for mongodb========================")
-        print(record)
-        attrs = [i for i in dir(record) if not i.startswith("__")]
+        # attrs = [i for i in dir(record) if not i.startswith("__")]
         # for i in attrs:
         #     print(i, ":::::", getattr(record, i))
         print("log for mongodb========================")
