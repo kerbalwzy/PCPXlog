@@ -1,11 +1,12 @@
 import logging
 import re
 import time
+from pprint import pprint
 
 import bson
+from bson import ObjectId
 from pymongo import MongoClient
 from platform import python_version
-from collections import OrderedDict
 
 PYTHON_VERSION = float(python_version()[0:3])
 
@@ -111,11 +112,10 @@ class RotatingMongodbHandler(logging.Handler):
 
     def __format_record(self, record):
         """
-        This method add some attribute for the record object.
-        :param record
-        :return: record
+        Add some attribute for the record object.
         """
         record.message = record.getMessage()
+
         if self.formatter.usesTime():
             record.asctime = self.formatter.formatTime(record, self.formatter.datefmt)
 
@@ -124,39 +124,43 @@ class RotatingMongodbHandler(logging.Handler):
             # (it's constant anyway)
             if not record.exc_text:
                 record.exc_text = self.formatter.formatException(record.exc_info)
+
         return record
 
     def parse_log(self, record):
         """
         Translate the record object into a log information dict
         :param record: the log record object
-        :return: log_date: the log info dict
+        :return: log_information_dict: the log info dict
         """
-        raw_fmt = self.formatter._fmt
-        format_keys = re.findall(r'\W+(\w+)\W+?', raw_fmt)
+        # Get the raw format string and trans record to a dict
+        raw_fmt_str = self.formatter._fmt
+        record2dict = record.__dict__
 
-        log_information_dict = OrderedDict()
-        for key in format_keys:
-            log_information_dict[key] = getattr(record, key)
-        log_information_dict['exc_text'] = record['exc_text']
-        log_information_dict['stack_info'] = record['stack_info']
+        # Create a new dict to save the log information we need
+        log_information_dict = dict(_id=ObjectId())
+        for key in record2dict:
+            if key in raw_fmt_str:
+                log_information_dict[key] = record2dict.get(key)
+
+        # Try to save some very important additional information
+        exec_text = record2dict.get("exc_text")
+        if exec_text:
+            log_information_dict['exc_text'] = exec_text
+        stack_info = record2dict.get("stack_info")
+        if stack_info:
+            log_information_dict['stack_info'] = stack_info
+
         return log_information_dict
 
     def emit(self, record):
         """
         Get information from record and make it to a dict, then save to mongodb
         """
+
         record = self.__format_record(record)
-        print(self.formatter.usesTime())
-        print(dir(record))
-        # log_data = self.parse_log(record)
-        # print(log_data)
-        # print(record.asctime)
-        print("log for mongodb========================")
-        # attrs = [i for i in dir(record) if not i.startswith("__")]
-        # for i in attrs:
-        #     print(i, ":::::", getattr(record, i))
-        print("log for mongodb========================")
+        log_data = self.parse_log(record)
+        pprint(log_data)
 
     def close(self):
         """
