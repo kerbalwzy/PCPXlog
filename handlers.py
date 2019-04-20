@@ -119,9 +119,21 @@ class RotatingMongodbHandler(logging.Handler):
 
         # Judge if the log data collection still have space
         if new_log_coll_size > self.coll_size:
-            # TODO Create a new collection to save the log data
+            # Update the log saving status
+            new_log_coll_name = self.base_coll_name + "_" + str(int(round(time.time())))
 
-            pass
+            current_log_status = log_saving_status["current_log_coll"]
+            current_log_status["is_fall"] = True
+
+            log_saving_status["history_log_coll"].append(current_log_status)
+
+            new_log_status = {"name": new_log_coll_name,
+                              "current_size": log_data_size,
+                              "is_fall": False}
+            log_saving_status["current_log_coll"] = new_log_status
+
+            # Update the current log collection cursor
+            self.current_log_coll = self.db[new_log_coll_name]
 
         else:
             log_saving_status["current_log_coll"]["current_size"] = new_log_coll_size
