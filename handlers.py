@@ -1,14 +1,8 @@
 import logging
-import re
 import time
-from pprint import pprint
-
 import bson
-from bson import ObjectId
-from pymongo import MongoClient
-from platform import python_version
 
-PYTHON_VERSION = float(python_version()[0:3])
+from pymongo import MongoClient
 
 # the max size of single collection is 16MB.
 # So we set the MONGODB_COLL_MAX_SIZE = 15MB to keep safe
@@ -41,8 +35,8 @@ class RotatingMongodbHandler(logging.Handler):
         :param coll_count: the count of the log collection in the database
         """
         logging.Handler.__init__(self)
-        assert 0 < coll_count <= MONGODB_COLL_MAX_COUNT, "The value out of range for Param coll_count"
-        assert 0 < coll_size <= MONGODB_COLL_MAX_SIZE, "The value out of range for Param coll_size"
+        assert 0 < coll_count <= MONGODB_COLL_MAX_COUNT, ValueError("The value out of range for Param coll_count")
+        assert 0 < coll_size <= MONGODB_COLL_MAX_SIZE, ValueError("The value out of range for Param coll_size")
         # create mongodb client cursor
         if user or password:
             uri = 'mongodb://' + user + ':' + password + '@' + host + ':' + str(port) + '/'
@@ -175,7 +169,7 @@ class RotatingMongodbHandler(logging.Handler):
         record2dict = record.__dict__
 
         # Create a new dict to save the log information we need
-        log_information_dict = dict(_id=ObjectId())
+        log_information_dict = dict(_id=bson.ObjectId())
         for key in record2dict:
             if key in raw_fmt_str:
                 log_information_dict[key] = record2dict.get(key)
@@ -192,19 +186,20 @@ class RotatingMongodbHandler(logging.Handler):
 
     def emit(self, record):
         """
-        Get information from record and make it to a dict, then save to mongodb
+        Get information from record and make it to a dict, then save into mongodb
         """
         record = self.__format_record(record)
+
         log_data = self.parse_log(record)
+
+        self.db_record(log_data)
 
     def close(self):
         """
         Close the connect with mongodb
         """
-        print("close")
         self.client.close()
 
 
 if __name__ == '__main__':
-    monodb_log = RotatingMongodbHandler(host="104.128.87.146")
-    monodb_log.db_record()
+    pass
