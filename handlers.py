@@ -76,7 +76,7 @@ class RotatingMongodbHandler(logging.Handler):
         # create the current log collection cursor
         self.current_log_coll = self.db[current_record["current_log_coll"]["name"]]
 
-    def db_record(self, log_date):
+    def db_record(self, log_data):
         """
         Check the status about the log information saving, and record the log collection have
         saved how many data.
@@ -108,7 +108,7 @@ class RotatingMongodbHandler(logging.Handler):
         current_log_coll_size = log_saving_status["current_log_coll"]["current_size"]
 
         # Calculate the new size before save this log data
-        log_data_size = len(bson.BSON.encode(log_date))
+        log_data_size = len(bson.BSON.encode(log_data))
         new_log_coll_size = current_log_coll_size + log_data_size
 
         # Judge if the log data collection still have space
@@ -134,12 +134,12 @@ class RotatingMongodbHandler(logging.Handler):
 
         try:
             # Save log info into mongodb
-            self.current_log_coll.insert_one(log_date)
+            self.current_log_coll.insert_one(log_data)
             # Update the saving status info
-            self.__RecordColl.update_one(filter=query_rule, update=log_saving_status)
+            self.__RecordColl.update_one(filter=query_rule, update={'$set': log_saving_status})
 
-        except Exception as e:
-            logging.error(e)
+        except:
+            pass
 
     def __format_record(self, record):
         """
