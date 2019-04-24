@@ -6,11 +6,12 @@ Present:                         |
     console                      |
     file                         |
     rotating_file                |
+    mongodb                      |
 ----------------------------------
 Future:                          |
-    mongodb                      |
     mysql                        |
     redis                        |
+    ....                         |
 ----------------------------------
 """
 import logging

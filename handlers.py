@@ -13,22 +13,22 @@ MONGODB_COLL_MAX_COUNT = 11000
 
 
 class RotatingMongodbHandler(logging.Handler):
+    """
+    A log handler to save log information into mongodb.
+    The default name of database will be 'CPXLog' and every collection will be named 'log_<createTime>'.
+    The max size of single collection allow be 15MB, and the max count of the log collection in a database
+    allow be 11K. If the space of the 'logs_<createTime>' collection is not enough, it will create a new
+    collection.So it can save about 161GB log data.
+    """
 
     def __init__(self, host="127.0.0.1", port=27017, user=None, password=None,
                  db="CPXLog", coll_name="logs", coll_size=MONGODB_COLL_MAX_SIZE,
                  coll_count=MONGODB_COLL_MAX_COUNT):
 
         """
-        Get a collection operator to save log information. And the default database name will be 'CPXLog'，
-        the default collection name will be 'logs'. The max size of single collection allow be 15MB, and
-        the max count of the log collection in a database allow be 11K. If the space of the 'logs' collection
-        is empty, it will create a new collection also named 'logs', and the old one will be renamed as a
-        time interval.
+        Connect to mongodb server, create the 'LogRecord' collection and initial the log_saving_status.
+        And then create the log collection cursor ready to save log data
 
-        :param host: the host of mongodb server
-        :param port: the port of mongodb server
-        :param user: the username for auth
-        :param password: the password for auth
         :param db: the database name for save all log collections
         :param coll_name: the collection name for save logs information
         :param coll_size: the max size of single log collection
@@ -55,14 +55,14 @@ class RotatingMongodbHandler(logging.Handler):
         self.__Handler_tag = "CPXLog-mongodb"
         self.__RecordColl = self.db["LogRecord"]
 
-        current_record = self.__RecordColl.find_one(dict(tag=self.__Handler_tag))
-        if current_record:
-            self.__logs_record_id = current_record["_id"]
+        log_saving_status = self.__RecordColl.find_one(dict(tag=self.__Handler_tag))
+        if log_saving_status:
+            self.__logs_record_id = log_saving_status["_id"]
         else:
-            current_record = dict(
+            log_saving_status = dict(
                 tag=self.__Handler_tag,
                 coll_size=self.coll_size,
-                coll_count=self.coll_count,
+                coll_remainder_count=self.coll_count - 1,
                 history_log_coll=list(),
                 current_log_coll=dict(
                     name=self.base_coll_name + "_" + str(int(round(time.time()))),
@@ -70,11 +70,11 @@ class RotatingMongodbHandler(logging.Handler):
                     is_fall=False
                 )
             )
-            ret = self.__RecordColl.insert_one(current_record)
+            ret = self.__RecordColl.insert_one(log_saving_status)
             self.__logs_record_id = ret.inserted_id
 
         # create the current log collection cursor
-        self.current_log_coll = self.db[current_record["current_log_coll"]["name"]]
+        self.current_log_coll = self.db[log_saving_status["current_log_coll"]["name"]]
 
     def db_record(self, log_data):
         """
@@ -82,10 +82,10 @@ class RotatingMongodbHandler(logging.Handler):
         saved how many data.
         The logs record data structure example:
         {
-            _id: ObjectId(<id_auto_created_by_mongodb>),
+            _id: ObjectId(<id_auto_created>),
             tag: "CPXLog-mongodb",
             coll_size: <coll_size>,
-            coll_count: <coll_count>,
+            coll_remainder_count: <coll_count>,
             history_log_coll: [
                 {
                     name: <coll_name>_<create_time_stamp>,
@@ -111,23 +111,30 @@ class RotatingMongodbHandler(logging.Handler):
         log_data_size = len(bson.BSON.encode(log_data))
         new_log_coll_size = current_log_coll_size + log_data_size
 
-        # Judge if the log data collection still have space
+        # Check the remainder space of the current log collection
         if new_log_coll_size > self.coll_size:
-            # Update the log saving status
-            new_log_coll_name = self.base_coll_name + "_" + str(int(round(time.time())))
+            # Update the coll_remainder_count and check if the value greater then zero
+            if log_saving_status["coll_remainder_count"] > 0:
+                # Update the log saving status
+                log_saving_status["coll_remainder_count"] -= 1
+                new_log_coll_name = self.base_coll_name + "_" + str(int(round(time.time())))
 
-            current_log_status = log_saving_status["current_log_coll"]
-            current_log_status["is_fall"] = True
+                current_log_status = log_saving_status["current_log_coll"]
+                current_log_status["is_fall"] = True
 
-            log_saving_status["history_log_coll"].append(current_log_status)
+                log_saving_status["history_log_coll"].append(current_log_status)
 
-            new_log_status = {"name": new_log_coll_name,
-                              "current_size": log_data_size,
-                              "is_fall": False}
-            log_saving_status["current_log_coll"] = new_log_status
+                new_log_status = {"name": new_log_coll_name,
+                                  "current_size": log_data_size,
+                                  "is_fall": False}
 
-            # Update the current log collection cursor
-            self.current_log_coll = self.db[new_log_coll_name]
+                log_saving_status["current_log_coll"] = new_log_status
+
+                # Update the current log collection cursor
+                self.current_log_coll = self.db[new_log_coll_name]
+            else:
+                # TODO create new database and collections to save log data
+                pass
 
         else:
             log_saving_status["current_log_coll"]["current_size"] = new_log_coll_size
@@ -136,10 +143,12 @@ class RotatingMongodbHandler(logging.Handler):
             # Save log info into mongodb
             self.current_log_coll.insert_one(log_data)
             # Update the saving status info
-            self.__RecordColl.update_one(filter=query_rule, update={'$set': log_saving_status})
+            self.__RecordColl.update_one(filter=query_rule,
+                                         update={'$set': log_saving_status})
 
-        except:
-            pass
+        except Exception as e:
+            raise e
+            # TODO May can send a email to manager in the future
 
     def __format_record(self, record):
         """
