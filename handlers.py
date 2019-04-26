@@ -1,5 +1,5 @@
 import logging
-import time
+import datetime
 import bson
 
 from pymongo import MongoClient
@@ -44,6 +44,13 @@ class RotatingMongodbHandler(logging.Handler):
 
     """
 
+    def __create_coll_name(self):
+        """
+        Create the log data collection name with millisecond system time
+        """
+        name = self.baseCollName + "_" + datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S.%f')
+        return name
+
     def __create_coll(self):
         """
         Set the value for self.__dbStateColl object, and try to init the state of log saving.
@@ -61,7 +68,7 @@ class RotatingMongodbHandler(logging.Handler):
                 coll_remainder_count=self.collCount - 1,
                 history_log_coll=list(),
                 current_log_coll=dict(
-                    name=self.baseCollName + "_" + str(int(round(time.time()))),
+                    name=self.__create_coll_name(),
                     current_size=0,
                 )
             )
@@ -160,7 +167,7 @@ class RotatingMongodbHandler(logging.Handler):
         """
         coll_remainder_count = log_saving_state["coll_remainder_count"]
 
-        if coll_remainder_count == 0:
+        if coll_remainder_count < 0:
             earliest_log_data_coll_name = log_saving_state["history_log_coll"].pop(0).get('name')
             earliest_log_data_coll = self.db[earliest_log_data_coll_name]
             earliest_log_data_coll.drop()
@@ -183,9 +190,10 @@ class RotatingMongodbHandler(logging.Handler):
             current_log_state = log_saving_state["current_log_coll"]
             log_saving_state["history_log_coll"].append(current_log_state)
 
-            new_log_coll_name = self.baseCollName + "_" + str(int(round(time.time())))
-            new_log_state = {"name": new_log_coll_name, "current_size": data_size}
+            new_log_state = {"name": self.__create_coll_name(), "current_size": data_size}
             log_saving_state["current_log_coll"] = new_log_state
+
+            self.__logDataColl = self.db[log_saving_state["current_log_coll"]["name"]]
 
         else:
             log_saving_state["current_log_coll"]["current_size"] = new_coll_size
@@ -215,23 +223,29 @@ class RotatingMongodbHandler(logging.Handler):
         state_query_rule = {"_id": self.__logsStateID}
         log_saving_state = self.__check_saving_state(state_query_rule, log_data)
 
-        self.__logDataColl = self.db[log_saving_state["current_log_coll"]["name"]]
-        try:
-            # Save log info into mongodb
-            self.__logDataColl.insert_one(log_data)
-            # Update the saving state info
-            self.__dbStateColl.update_one(filter=state_query_rule,
-                                          update={'$set': log_saving_state})
-        except Exception as e:
-            raise e
-            # TODO May can send a email to manager in the future
+        # Save log info into mongodb
+        self.__logDataColl.insert_one(log_data)
+        # Update the saving state info
+        self.__dbStateColl.update_one(filter=state_query_rule,
+                                      update={'$set': log_saving_state})
+
+    def send_email(self, error):
+        """
+        TODO Parse the error information and send an email to the administrator
+        """
+        pass
 
     def emit(self, record):
         """
-        Get information from record and make it to a dict, then save into mongodb
+        Get information from record and make it to a dict, then save into mongodb. If there
+        some error happened , it will send a email to the administrator.
         """
-        log_data = self.parse_log(record)
-        self.save(log_data)
+        try:
+            log_data = self.parse_log(record)
+            self.save(log_data)
+
+        except Exception as e:
+            self.send_email(e)
 
     def close(self):
         """
