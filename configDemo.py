@@ -1,4 +1,4 @@
-# defaultConfig.py 
+# configDemo.py
 # saved an class config demo and a dict config deme
 
 
