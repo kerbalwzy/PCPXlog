@@ -23,12 +23,12 @@ class CPXLogger:
     default_format = '[%(levelname)s] %(asctime)s <%(name)s> %(pathname)s line:%(lineno)d :%(message)s'
 
     __logger = None
-    __handlers = list()
+    handlers = list()
     __loaded_config = False
 
     @classmethod
     def __create_handler(cls, handler_class, init_params, log_level, format_str):
-        # Create a log handler and add it into cls.__handlers
+        # Create a log handler and add it into cls.handlers
 
         new_handler = handler_class(**init_params)
 
@@ -36,7 +36,7 @@ class CPXLogger:
         new_formatter = logging.Formatter(format_str)
         new_handler.setFormatter(new_formatter)
 
-        cls.__handlers.append(new_handler)
+        cls.handlers.append(new_handler)
 
     @classmethod
     def __create_logger(cls, name: str):
@@ -47,7 +47,7 @@ class CPXLogger:
         logging.basicConfig(level=cls.default_level, format=cls.default_format)
         cls.__logger = logging.getLogger(name)
 
-        for handler in cls.__handlers:
+        for handler in cls.handlers:
             cls.__logger.addHandler(handler)
 
     @classmethod
@@ -139,7 +139,7 @@ class CPXLogger:
     @classmethod
     def __clean_config(cls):
         # clean all about of the log config
-        cls.__handlers.clear()
+        cls.handlers.clear()
         cls.__loaded_config = False
         cls.__logger = None
 
