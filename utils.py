@@ -1,37 +1,3 @@
-# utils.py
 """
-config2handlers_params_map:
-    help the module translate Config Key to Handler init Params
-
-
+Save self-defined tools in this file
 """
-
-config2handlers_params_map = {
-    "LEVEL": "level",
-    "FORMAT": "format",
-    "FILE_PATH": "filename",
-    "ENCODING": "encoding",
-    "DELAY": "delay",
-    "MAX_BYTES": "maxBytes",
-    "BACKUP_COUNT": "backupCount"
-}
-
-
-class BasicConfigMap:
-    LEVEL = "LEVEL"
-    FORMAT = "FORMAT"
-
-
-class ConsoleConfigMap(BasicConfigMap):
-    pass
-
-
-class FileConfigMap(BasicConfigMap):
-    TYPE = "TYPE"
-    FILE_PATH = "FILE_PATH"
-    MAX_BYTES = "MAX_BYTES"
-    BACKUP_COUNT = "BACKUP_COUNT"
-
-
-class MongodbConfigMap(BasicConfigMap):
-    pass

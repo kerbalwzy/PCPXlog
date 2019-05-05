@@ -245,6 +245,7 @@ class RotatingMongodbHandler(logging.Handler):
             self.save(log_data)
 
         except Exception as e:
+            # TODO
             self.send_email(e)
 
     def close(self):

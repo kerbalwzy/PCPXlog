@@ -24,13 +24,12 @@ class CPXLogger:
 
     __logger = None
     __handlers = list()
-    __config_dict = dict()
+    __loaded_config = False
 
     @classmethod
     def __create_handler(cls, handler_class, init_params, log_level, format_str):
-        """
-        Create a log handler and add it into cls.__handlers
-        """
+        # Create a log handler and add it into cls.__handlers
+
         new_handler = handler_class(**init_params)
 
         new_handler.setLevel(log_level)
@@ -41,9 +40,10 @@ class CPXLogger:
 
     @classmethod
     def __create_logger(cls, name: str):
-        """
-        Create the logger and add the handlers
-        """
+        # Create the logger and add the handlers
+
+        assert cls.__loaded_config, Exception("You cant not create logger before load config")
+
         logging.basicConfig(level=cls.default_level, format=cls.default_format)
         cls.__logger = logging.getLogger(name)
 
@@ -63,7 +63,7 @@ class CPXLogger:
 
         :param config: config information dict
         """
-        from loader import ConfigLoader
+        from cpxLoader import ConfigLoader
 
         basic_cnf = config.get("Basic", None)
         if basic_cnf:
@@ -80,29 +80,34 @@ class CPXLogger:
         # process the config for file log output
         file_log_cnf = config.get("File", None)
         if file_log_cnf:
-            # get file log handler create params
+            # Get file log handler creating params
             params = ConfigLoader.load_file_config(config=file_log_cnf)
-            # create handler
+            # Create handler
             cls.__create_handler(**params)
             del config["File"]
 
         # TODO deal the config for mongodb log output
-        pass
+        mongodb_log_cnf = config.get("Mongodb", None)
+        if mongodb_log_cnf:
+            # Get mongodb handler creating params
+            params = ConfigLoader.load_mongodb_config(config=mongodb_log_cnf)
+            cls.__create_handler(**params)
+            del config["Mongodb"]
 
     @classmethod
     def config_from_dict(cls, config_dict: dict) -> None:
-        """
-        Load the config from a dict
-        """
+        # Load the config from a dict
+
         cls.__clean_config()
 
         cls.__load_config(config_dict)
 
+        cls.__loaded_config = True
+
     @classmethod
     def config_from_class(cls, config_class: object) -> None:
-        """
-        Load the log config from a class object
-        """
+        # Load the log config from a class object
+
         cls.__clean_config()
 
         # Translate the configClass to a configDict
@@ -113,24 +118,29 @@ class CPXLogger:
             config_detail = {attr: getattr(sub_class, attr)
                              for attr in dir(sub_class) if attr.isupper()}
             config_dict.update({name: config_detail})
+
         cls.__load_config(config_dict)
+
+        cls.__loaded_config = True
 
     @classmethod
     def config_from_file(cls, config_file_path: str, encoding=None) -> None:
-        """
-        Load the log config from a json file
-        """
+        # Load the log config from a json file
+
         cls.__clean_config()
 
         with open(config_file_path, "r", encoding=encoding) as f:
             config_dict = json.loads(f.read(), encoding=encoding)
+
         cls.__load_config(config_dict)
+
+        cls.__loaded_config = True
 
     @classmethod
     def __clean_config(cls):
         # clean all about of the log config
         cls.__handlers.clear()
-        cls.__config_dict.clear()
+        cls.__loaded_config = False
         cls.__logger = None
 
     @staticmethod
