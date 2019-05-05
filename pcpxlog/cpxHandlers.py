@@ -48,7 +48,7 @@ class RotatingMongodbHandler(logging.Handler):
         """
         Create the log data collection name with millisecond system time
         """
-        name = self.baseCollName + "_" + datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S.%f')
+        name = self.baseCollName + "_" + datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S_%f')
         return name
 
     def __create_coll(self):
