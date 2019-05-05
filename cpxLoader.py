@@ -1,6 +1,6 @@
 import logging
 from logging import handlers
-from cpxlogger import CPXLogger
+from cpxLogger import CPXLogger
 import cpxHandlers
 
 

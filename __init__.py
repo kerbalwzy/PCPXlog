@@ -6,4 +6,4 @@ __all__ = [
     "CPXLogger"
 ]
 
-from cpxlogger import CPXLogger
+from cpxLogger import CPXLogger
