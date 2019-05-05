@@ -2,8 +2,10 @@
 Author: Kerbalwzy@gmail.com
 
 """
-__all__ = [
-    "CPXLogger"
-]
 
-from cpxLogger import CPXLogger
+from pcpxlog.cpxLogger import CPXLogger
+from pcpxlog.cpxHandlers import RotatingMongodbHandler
+
+__all__ = [
+    CPXLogger, RotatingMongodbHandler
+]

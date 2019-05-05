@@ -1,7 +1,6 @@
 import logging
 from logging import handlers
-from cpxLogger import CPXLogger
-import cpxHandlers
+from pcpxlog import CPXLogger, cpxHandlers
 
 
 class ConfigLoader:

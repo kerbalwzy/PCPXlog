@@ -63,7 +63,7 @@ class CPXLogger:
 
         :param config: config information dict
         """
-        from cpxLoader import ConfigLoader
+        from pcpxlog.cpxLoader import ConfigLoader
 
         basic_cnf = config.get("Basic", None)
         if basic_cnf:
