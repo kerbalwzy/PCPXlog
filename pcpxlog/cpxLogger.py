@@ -17,6 +17,8 @@ Future:                          |
 import logging
 import json
 
+from pcpxlog.cpxUtils import CheckAnnotation
+
 
 class CPXLogger:
     default_level = logging.DEBUG
@@ -39,6 +41,7 @@ class CPXLogger:
         cls.handlers.append(new_handler)
 
     @classmethod
+    @CheckAnnotation.check_params
     def __create_logger(cls, name: str):
         # Create the logger and add the handlers
 
@@ -51,6 +54,7 @@ class CPXLogger:
             cls.__logger.addHandler(handler)
 
     @classmethod
+    @CheckAnnotation.check_params
     def __load_config(cls, config: dict):
         """
         Get config information from the config dict.
@@ -95,6 +99,7 @@ class CPXLogger:
             del config["Mongodb"]
 
     @classmethod
+    @CheckAnnotation.check_params
     def config_from_dict(cls, config_dict: dict) -> None:
         # Load the config from a dict
 
@@ -105,6 +110,7 @@ class CPXLogger:
         cls.__loaded_config = True
 
     @classmethod
+    @CheckAnnotation.check_params
     def config_from_class(cls, config_class: object) -> None:
         # Load the log config from a class object
 
@@ -124,6 +130,7 @@ class CPXLogger:
         cls.__loaded_config = True
 
     @classmethod
+    @CheckAnnotation.check_params
     def config_from_file(cls, config_file_path: str, encoding=None) -> None:
         # Load the log config from a json file
 
